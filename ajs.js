@@ -262,7 +262,7 @@ const th = (node) => {
 };
 
 const td = (node) => {
-  return tag("td")._style({ padding: "10px", borderRadius: "0" })._append(node);
+  return tag("td")._style({ borderRadius: "0" })._append(node);
 };
 
 const trh = (data) => {
@@ -293,7 +293,7 @@ const table = (data = []) => {
 // ==================================
 
 const flex = (id) => {
-  return div(id)._style({ display: "flex" });
+  return div(id)._style({ display: "flex", alignItems: "center" });
 };
 
 const copy = (get_val) => {
@@ -346,7 +346,8 @@ const textinp = (Label = "Input") => {
   return flex("_text_input")
     ._style({ width: "fit-content", borderBottomStyle: "solid" })
     ._style({ borderRadius: "0" })
-    ._append(lab, inp, x);
+    ._append(lab, inp, x)
+    ._set({ val: () => inp.value });
 };
 
 const jtable = (data = [{}]) => {
@@ -359,4 +360,114 @@ const jtable = (data = [{}]) => {
     d[i + 1] = arr;
   }
   return table(d);
+};
+
+// ==================================
+
+const colorp = (hue = 0, lit = 50, on_change = () => {}, size_f = 15) => {
+  // ==============
+  const c_style = {
+    flex: 1,
+    height: size_f + "px",
+    margin: "0px",
+    padding: "0px",
+    borderRadius: "0",
+  };
+
+  const cir_style = {
+    height: size_f * 1.5 + "px",
+    width: size_f * 1.5 + "px",
+    borderRadius: "50%",
+    borderStyle: "solid",
+    position: "absolute",
+  };
+
+  const col_style = {
+    width: size_f * 2.5 + "px",
+    height: size_f * 2.5 + "px",
+  };
+
+  const picker_style = { borderStyle: "none solid", width: size_f * 36 + "px" };
+  const selec_style = { margin: "0px", flex: 1 };
+
+  // ==============
+  const cir_hue = div("selec hue")._style(cir_style);
+  const cir_lit = div("selec light")._style(cir_style);
+  const sel_hue = flex("hue")._append(cir_hue);
+  const sel_lit = flex("light")._append(cir_lit);
+
+  const select = div("selected")._style(selec_style)._append(sel_hue, sel_lit);
+  const color = div("color")._style(col_style);
+
+  // ==============
+  const set_cir = (cir, to) => {
+    cir.style.left = to.offsetLeft - (size_f - to.style.width) + "px";
+    cir.style.backgroundColor = to.style.backgroundColor;
+  };
+
+  // ==============
+  const picker = flex("color_picker")
+    ._style(picker_style)
+    ._set({ hue: hue, lit: lit })
+    ._set({ hue_click: false, lit_click: false })
+    ._append(color, select);
+
+  window.addEventListener("mouseup", () => {
+    picker.hue_click = false;
+    picker.lit_click = false;
+  });
+
+  const hues = [];
+  const lits = [];
+
+  // ==============
+  picker.on_change = on_change;
+  picker._change = function (hue, lit) {
+    if (hue || hue == 0) {
+      set_cir(cir_hue, hues[hue]);
+      this.hue = hue;
+      for (let i = 0; i < 100; i++)
+        lits[i].style.backgroundColor = `hsl(${hue},100%,${i}%)`;
+    }
+    if (lit || lit == 0) {
+      set_cir(cir_lit, lits[lit]);
+      this.lit = lit;
+    }
+    this.on_change(this.hue, this.lit);
+    color.style.backgroundColor = `hsl(${this.hue},100%,${this.lit}%)`;
+  };
+
+  // ==============
+  for (let i = 0; i < 361; i++) {
+    const c = div()
+      ._style(c_style)
+      ._style({ backgroundColor: `hsl(${i},100%,50%)` })
+      ._click(() => picker._change(i))
+      ._eventListener("mousedown", () => (picker.hue_click = true))
+      ._eventListener("mouseenter", () => {
+        if (picker.hue_click) picker._change(i);
+      });
+    hues.push(c);
+  }
+
+  for (let i = 0; i < 101; i++) {
+    const c = div()
+      ._style(c_style)
+      ._style({ backgroundColor: `hsl(${hue},100%,${i}%)` })
+      ._click(() => picker._change(null, i))
+      ._eventListener("mousedown", () => (picker.lit_click = true))
+      ._eventListener("mouseenter", () => {
+        if (picker.lit_click) picker._change(null, i);
+      });
+    lits.push(c);
+  }
+
+  requestAnimationFrame(() => picker._change(hue));
+  requestAnimationFrame(() => picker._change(null, lit));
+
+  sel_hue._appendlist(hues);
+  sel_lit._appendlist(lits);
+
+  // ==============
+  return picker;
 };
